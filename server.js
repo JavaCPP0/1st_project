@@ -1,8 +1,10 @@
 import chalk from 'chalk';
 import figlet from 'figlet';
 import readlineSync from 'readline-sync';
-import {startGame} from "./game.js";
+import { startGame } from "./game.js";
 
+//전역변수
+global.playerName="";
 // 로비 화면을 출력하는 함수
 function displayLobby() {
     console.clear();
@@ -10,7 +12,7 @@ function displayLobby() {
     // 타이틀 텍스트
     console.log(
         chalk.cyan(
-            figlet.textSync('RL- Javascript', {
+            figlet.textSync('Hello guys!', {
                 font: 'Standard',
                 horizontalLayout: 'default',
                 verticalLayout: 'default'
@@ -44,27 +46,23 @@ function displayLobby() {
 
 // 유저 입력을 받아 처리하는 함수
 function handleUserInput() {
-    const choice = readlineSync.question('입력: ');
+    const choice = readlineSync.question('insert: ');
 
     switch (choice) {
         case '1':
             console.log(chalk.green('게임을 시작합니다.'));
-            // 여기에서 새로운 게임 시작 로직을 구현
             startGame();
             break;
         case '2':
             console.log(chalk.yellow('구현 준비중입니다.. 게임을 시작하세요'));
-            // 업적 확인하기 로직을 구현
             handleUserInput();
             break;
         case '3':
             console.log(chalk.blue('구현 준비중입니다.. 게임을 시작하세요'));
-            // 옵션 메뉴 로직을 구현
             handleUserInput();
             break;
         case '4':
             console.log(chalk.red('게임을 종료합니다.'));
-            // 게임 종료 로직을 구현
             process.exit(0); // 게임 종료
             break;
         default:
@@ -73,8 +71,26 @@ function handleUserInput() {
     }
 }
 
+// 플레이어 이름을 입력받는 함수
+function makePlayer() {
+    playerName = readlineSync.question('Please Insert Your name!: ');
+    console.log(
+        chalk.green(
+            figlet.textSync(`Good to see you, ${playerName}!`, {
+                font: 'Standard',
+                horizontalLayout: 'default',
+                verticalLayout: 'default'
+            })
+        )
+    );
+
+    // 3초 지연
+    return new Promise(resolve => setTimeout(resolve, 500)); //Promise 생성 후 resolve를 반환
+}
+
 // 게임 시작 함수
-function start() {
+async function start() { //await을 위해 async함수로 선언
+    await makePlayer(); // Promise가 반환될때까지 대기
     displayLobby();
     handleUserInput();
 }
