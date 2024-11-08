@@ -96,4 +96,4 @@ async function start() { //await을 위해 async함수로 선언
 }
 
 // 게임 실행
-start();
+start(); //npm start , npm run start 로 실행하면 한글이 안깨진다.

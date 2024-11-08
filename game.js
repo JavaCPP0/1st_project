@@ -58,7 +58,7 @@ const battle = async (stage, player, monster) => {
         `\n1. 공격한다 2. 아무것도 하지않는다.`,
       ),
     );
-    const choice = readlineSync.question('What is your choice?');
+    const choice = readlineSync.question('What is your choice한글?');
 
     // 플레이어의 선택에 따라 다음 행동 처리
     logs.push(chalk.green(`${choice}를 선택하셨습니다.`));
