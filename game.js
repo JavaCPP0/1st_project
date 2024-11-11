@@ -17,9 +17,19 @@ export class Player {
 
   attack(monster, logs) {
     // 플레이어의 공격
-    const damage = Math.max(0, this.sword.atk + this.atk - monster.amr);  // 공격력 계산
-    monster.nowHp -= damage;  // 몬스터의 체력 감소
-    logs.push(`${monster.name}의 체력이 ${monster.nowHp} 남았습니다.`);
+    if (monster.barrier === false) {
+      const damage = Math.max(0, this.sword.atk + this.atk - monster.amr);  // 공격력 계산
+      monster.nowHp -= damage;  // 몬스터의 체력 감소
+      logs.push(`피해를 ${damage}만큼 입혀 ${monster.name}의 체력이 ${monster.nowHp} 남았습니다.`);
+    } else if (monster.barrier === true) {
+      logs.push(`${monster.name}가 방어에 성공했습니다!`);
+      monster.barrier = false;
+    }
+  }
+
+  getBarrier() {
+    const playerRandomChoice = Math.floor(Math.random() * 2) + 1;
+    if (playerRandomChoice % 2 === 0) this.barrier = true;
   }
 }
 
@@ -45,13 +55,18 @@ export class Monster {
 
     switch (randomChoice) {
       case 1: case 2: case 3: case 4:
-        logs.push(chalk.green(`몬스터가 일반공격을 선택했습니다.`));
-        const damage = Math.max(0, this.atk - player.amr);  // 플레이어의 방어력을 고려한 피해 계산
-        player.nowHp -= damage;  // 플레이어의 체력 감소
-        logs.push(`${this.name}의 일반공격! 당신의 체력이 ${player.nowHp} 남았습니다!`);
+        if (player.barrier === false) {
+          const damage = Math.max(0, this.atk - player.amr);  // 플레이어의 방어력을 고려한 피해 계산 (0이상)
+          player.nowHp -= damage;  // 플레이어의 체력 감소
+          logs.push(`${this.name}이 피해를 ${damage}만큼 입혀 당신의 체력이 ${player.nowHp} 남았습니다.`);
+        } else if (player.barrier === true) {
+          logs.push(`당신이 방어에 성공했습니다!`);
+          player.barrier = false;
+        }
         break;
       case 5: case 6:
         logs.push(chalk.green(`몬스터가 방어를 선택했습니다.`));
+        if (randomChoice % 2 === 0) this.barrier = true;
         break;
       case 7: case 8:
         logs.push(chalk.green(`몬스터가 스킬사용을 선택했습니다.`));
@@ -88,7 +103,8 @@ function handleUserBattle(logs, player, monster) {
       break;
     case '2':
       logs.push(chalk.green(`방어를 선택하셨습니다.`));
-      monster.randomAttack(player, logs); //테스트용
+      player.getBarrier();
+      monster.randomAttack(player, logs);
       break;
     case '3':
       logs.push(chalk.green(`스킬사용을 선택하셨습니다.`));
