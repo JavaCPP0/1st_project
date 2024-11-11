@@ -3,43 +3,59 @@ import readlineSync from 'readline-sync';
 
 // 전역변수
 global.playerName = "";
-export class Player {
+export class Player { //Player 클래스
   constructor(hp, lv, atk, amr, barrier, sword) {
-    this.hp = hp;
-    this.nowHp = hp;
+    this.hp = hp;//총 hp
+    this.nowHp = hp; // 현재(전투중)hp
     this.lv = lv;
     this.atk = atk;
     this.amr = amr;
     this.gold = 0;
-    this.barrier = barrier;
-    this.sword = sword;
+    this.barrier = barrier; // 방어성공여부
+    this.sword = sword; //무기
   }
 
   attack(monster, logs) {
     // 플레이어의 공격
-    if (monster.barrier === false) {
+    if (monster.barrier === false) { //몬스터의 방어가 없다면
       const damage = Math.max(0, this.sword.atk + this.atk - monster.amr);  // 공격력 계산
       monster.nowHp -= damage;  // 몬스터의 체력 감소
       logs.push(`피해를 ${damage}만큼 입혀 ${monster.name}의 체력이 ${monster.nowHp} 남았습니다.`);
-    } else if (monster.barrier === true) {
+    } else if (monster.barrier === true) { // 몬스터의 방어가 있다면
       logs.push(`${monster.name}가 방어에 성공했습니다!`);
-      monster.barrier = false;
+      monster.barrier = false; //방어를 사용했으니 없애기
     }
   }
 
-  getBarrier() {
-    const playerRandomChoice = Math.floor(Math.random() * 2) + 1;
-    if (playerRandomChoice % 2 === 0) this.barrier = true;
+  getBarrier() { // 방어 선택시 1/2확률로 방어막 획득 
+    const randomPlayerBarrier = Math.floor(Math.random() * 2) + 1;
+    if (randomPlayerBarrier % 2 === 0) this.barrier = true;
   }
+
+  useSkill(monster, logs) { //스킬사용: 메커니즘은 일반공격과 같으나 1/3확률로 빗나감
+    const randomPlayerSkill = Math.floor(Math.random() * 3) + 1; // 2/3 확률설정
+    if (randomPlayerSkill % 2 === 1 && monster.barrier === false) { //맞췄고 방어막이 없다면
+      const damage = (this.sword.atk + this.atk) * 2;  // 공격력 계산
+      monster.nowHp -= damage;  // 몬스터의 체력 감소
+      logs.push(`스킬 적중! 피해를 ${damage}만큼 입혀 ${monster.name}의 체력이 ${monster.nowHp} 남았습니다.`);
+    } else if (randomPlayerSkill % 2 === 1 && monster.barrier === true) { //맞췄지만 방어막이 있다면
+      logs.push(`${monster.name}가 방어에 성공했습니다!`);
+      monster.barrier = false;
+    } else if (randomPlayerSkill % 2 === 0) { //못맞췄지롱
+      logs.push(`스킬을 맞추지 못했습니다..!`);
+    }
+  }
+
+  runAway() { }
 }
 
-export class Sword {
+export class Sword { //플레이어의 무기 클래스
   constructor(atk) {
     this.atk = atk;
   }
 }
 
-export class Monster {
+export class Monster { //몬스터 클래스
   constructor(name, hp, lv, atk, amr, barrier) {
     this.name = name;
     this.hp = hp;
@@ -50,16 +66,39 @@ export class Monster {
     this.barrier = barrier;
   }
 
-  randomAttack(player, logs) {
+  monsterUseSkill(player, monster, logs) {
+    const randomMonsterSkill = Math.floor(Math.random() * 3) + 1; // 2/3 확률로 스킬 사용
+    // 몬스터 스킬이 적중하고 플레이어가 방어막을 가지고 있지 않으면
+    if (randomMonsterSkill % 2 === 1 && player.barrier === false) {
+      logs.push(chalk.green(`몬스터가 스킬사용을 선택했습니다.`));
+      const damage = monster.atk * 2; // 몬스터의 공격력 * 2 만큼 피해
+      player.nowHp -= damage; // 플레이어의 체력 감소
+      logs.push(`${monster.name}가 스킬을 사용해 ${damage}의 피해를 입혔습니다. 당신의 체력은 ${player.nowHp} 남았습니다.`);
+    }
+    // 몬스터 스킬이 적중했지만 플레이어가 방어막을 가지고 있으면
+    else if (randomMonsterSkill % 2 === 1 && player.barrier === true) {
+      logs.push(chalk.green(`몬스터가 스킬사용을 선택했습니다.`));
+      logs.push(`당신이 방어에 성공했습니다!`);
+      player.barrier = false; // 방어막을 소모
+    }
+    // 몬스터 스킬이 빗나갔을 경우
+    else if (randomMonsterSkill % 2 === 0) {
+      logs.push(`몬스터의 스킬이 빗나갔습니다!`);
+    }
+  }
+
+  randomAttack(player, logs) { //랜덤으로 각각 50%,25%,25%로 선택 메커니즘은 플레이어와 같음
     const randomChoice = Math.floor(Math.random() * 8) + 1;
 
     switch (randomChoice) {
       case 1: case 2: case 3: case 4:
         if (player.barrier === false) {
+          logs.push(chalk.green(`몬스터가 일반공격을 선택했습니다.`));
           const damage = Math.max(0, this.atk - player.amr);  // 플레이어의 방어력을 고려한 피해 계산 (0이상)
           player.nowHp -= damage;  // 플레이어의 체력 감소
-          logs.push(`${this.name}이 피해를 ${damage}만큼 입혀 당신의 체력이 ${player.nowHp} 남았습니다.`);
+          logs.push(`${this.name}가 피해를 ${damage}만큼 입혀 당신의 체력이 ${player.nowHp} 남았습니다.`);
         } else if (player.barrier === true) {
+          logs.push(chalk.green(`몬스터가 일반공격을 선택했습니다.`));
           logs.push(`당신이 방어에 성공했습니다!`);
           player.barrier = false;
         }
@@ -69,13 +108,13 @@ export class Monster {
         if (randomChoice % 2 === 0) this.barrier = true;
         break;
       case 7: case 8:
-        logs.push(chalk.green(`몬스터가 스킬사용을 선택했습니다.`));
+        this.monsterUseSkill(player, this, logs);
         break;
     }
   }
 }
 
-function displayStatus(stage, player, monster) {
+function displayStatus(stage, player, monster) { //전투중 상태창
   console.log(chalk.magentaBright(`\n=== Current Status ===`));
   console.log(
     chalk.cyanBright(`| Stage: ${stage} `) +
@@ -108,6 +147,8 @@ function handleUserBattle(logs, player, monster) {
       break;
     case '3':
       logs.push(chalk.green(`스킬사용을 선택하셨습니다.`));
+      player.useSkill(monster, logs);
+      monster.randomAttack(player, logs);
       break;
     case '4':
       logs.push(chalk.green(`도망을 선택하셨습니다.`));
@@ -137,7 +178,9 @@ const battle = async (stage, player, monster) => {
 
     let isValidChoice = false;
     while (!isValidChoice) {
+
       isValidChoice = handleUserBattle(logs, player, monster);
+
     }
 
     // 몬스터가 체력이 0 이하일 때 승리 처리
