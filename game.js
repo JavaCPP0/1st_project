@@ -3,8 +3,9 @@ import readlineSync from 'readline-sync';
 
 // 전역변수
 global.playerName = "";
+global.passStage = false;
 export class Player { //Player 클래스
-  constructor(hp, lv, atk, amr, barrier, sword) {
+  constructor(hp, lv, atk, amr, barrier, canIRunAway, sword) {
     this.hp = hp;//총 hp
     this.nowHp = hp; // 현재(전투중)hp
     this.lv = lv;
@@ -12,7 +13,9 @@ export class Player { //Player 클래스
     this.amr = amr;
     this.gold = 0;
     this.barrier = barrier; // 방어성공여부
+    this.canIRunAway = canIRunAway//도망기회
     this.sword = sword; //무기
+
   }
 
   attack(monster, logs) {
@@ -46,7 +49,13 @@ export class Player { //Player 클래스
     }
   }
 
-  runAway() { }
+  runAway() {
+    const ranRunAway = Math.floor(Math.random() * 3) + 1;
+    if (ranRunAway === 1) { // 1/3확률로 도망
+      this.canIRunAway = true;
+      return true;
+    } else return false;
+  }
 }
 
 export class Sword { //플레이어의 무기 클래스
@@ -151,8 +160,22 @@ function handleUserBattle(logs, player, monster) {
       monster.randomAttack(player, logs);
       break;
     case '4':
+
+      if (player.canIRunAway === false) {
+        logs.push(chalk.red(`이미 도망을 시도했습니다! 싸워야만 합니다!`));
+        break;
+      }
       logs.push(chalk.green(`도망을 선택하셨습니다.`));
+
+      if (runAway()) {
+        logs.push(chalk.green("성공적으로 도망쳤습니다!"));
+        player.canIRunAway = false;
+        passStage = true;
+      } else {
+        logs.push(chalk.red(`도망에 실패 했습니다!`));
+      }
       break;
+
     default:
       logs.push(chalk.red(`1~4의 값만 입력하세요.`));
       return false;  // 유효하지 않은 입력을 받으면 false 반환
@@ -211,10 +234,15 @@ export async function startGame() {
   let stage = 1;
 
   while (stage <= 10) {
-    let player = new Player(100 + stage * 10, stage, 15 + stage * 3, 5 + stage * 2, false, sword1);
-    let monster = new Monster(`Monster ${stage}단계`, 100 + stage * 20, stage, 15 + stage, 5 + stage, false);
+    let player = new Player(100 + stage * 10, stage, 15 + stage * 3, 5 + stage * 2, false, false, sword1);
+    let monster = new Monster(`Monster ${stage}단계`, 100 + stage * 20, stage, 10 + stage * 2, 5 + stage, false);
     const isVictory = await battle(stage, player, monster);
 
+    if (passStage === true) {
+      stage++;
+      player.canIRunAway=true;
+      continue;
+    }
     // 승리/패배 메시지 출력
     if (isVictory) {
       console.log(chalk.green(`Stage ${stage}에서 승리하셨습니다!`));
@@ -223,8 +251,11 @@ export async function startGame() {
       console.log(chalk.red(`게임 종료!`));
       break;
     }
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 2500)); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
     // 스테이지 클리어 및 게임 종료 조건
     stage++;
+    if (stage === 11) {
+      console.log(chalk.yellowBright(`모든 스테이지를 클리어했습니다!`));
+    }
   }
 }
