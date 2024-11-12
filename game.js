@@ -52,7 +52,8 @@ export class Player { //Player 클래스
   runAway() {
     const ranRunAway = Math.floor(Math.random() * 3) + 1;
     if (ranRunAway === 1) { // 1/3확률로 도망
-      this.canIRunAway = true;
+      this.canIRunAway = false;
+      this.gold -=30;
       return true;
     } else return false;
   }
@@ -161,20 +162,20 @@ function handleUserBattle(logs, player, monster) {
       break;
     case '4':
 
-      if (player.canIRunAway === false) {
-        logs.push(chalk.red(`이미 도망을 시도했습니다! 싸워야만 합니다!`));
-        break;
-      }
+    if (!player.canIRunAway) { // 이미 시도한 경우
+      logs.push(chalk.red(`이미 도망을 시도했습니다! 싸워야만 합니다!`));
+    } else {
       logs.push(chalk.green(`도망을 선택하셨습니다.`));
 
-      if (runAway()) {
+      if (player.runAway()) {
         logs.push(chalk.green("성공적으로 도망쳤습니다!"));
-        player.canIRunAway = false;
         passStage = true;
       } else {
         logs.push(chalk.red(`도망에 실패 했습니다!`));
       }
-      break;
+      player.canIRunAway = false; // 도망 시도 후에 false로 설정
+    }
+    break;
 
     default:
       logs.push(chalk.red(`1~4의 값만 입력하세요.`));
@@ -203,7 +204,11 @@ const battle = async (stage, player, monster) => {
     while (!isValidChoice) {
 
       isValidChoice = handleUserBattle(logs, player, monster);
+    }
 
+    if (passStage === true) {
+      stage ++;
+      break;
     }
 
     // 몬스터가 체력이 0 이하일 때 승리 처리
@@ -234,15 +239,12 @@ export async function startGame() {
   let stage = 1;
 
   while (stage <= 10) {
-    let player = new Player(100 + stage * 10, stage, 15 + stage * 3, 5 + stage * 2, false, false, sword1);
+    let player = new Player(100 + stage * 10, stage, 15 + stage * 3, 5 + stage * 2, false, true, sword1);
     let monster = new Monster(`Monster ${stage}단계`, 100 + stage * 20, stage, 10 + stage * 2, 5 + stage, false);
     const isVictory = await battle(stage, player, monster);
 
-    if (passStage === true) {
-      stage++;
-      player.canIRunAway=true;
-      continue;
-    }
+    
+
     // 승리/패배 메시지 출력
     if (isVictory) {
       console.log(chalk.green(`Stage ${stage}에서 승리하셨습니다!`));
