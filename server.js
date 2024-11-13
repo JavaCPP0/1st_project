@@ -84,7 +84,7 @@ function handleUserInput() {
             displayArchive();
             break;
         case '3':
-            console.log(chalk.blue('구현 준비중입니다.. 게임을 시작하세요'));
+            console.log(chalk.blue('업적시스템'));
             handleUserInput();
             break;
         case '4':

@@ -8,7 +8,8 @@ global.playerName = "";
 global.passStage = false;//도망치기 성공시 스테이지 패스 여부
 global.gold = 0; //스테이지마다 플레이어를 재할당 하다보니 문제가 많이 생겨서 전역변수로 뺐다
 global.cheat = false; //테스트용
-global.record=[]; //기록보관
+global.record = []; //기록보관
+global.achievements = [];//업적보관
 
 class Player { //Player 클래스
   constructor(hp, lv, atk, amr, barrier, canIRunAway, sword) {
@@ -130,24 +131,24 @@ class Monster { //몬스터 클래스
   }
 }
 
-function displayStatus(stage, player, monster,sword1) { // 전투 중 상태창
-  console.log(chalk.magentaBright(`\n=== Current Status ===`));
+function displayStatus(stage, player, monster, sword1) { // 전투 중 상태창
+  console.log(chalk.magentaBright(`\n========================================== Current Status ==========================================`));
   console.log(
-      chalk.cyanBright(`| Stage: ${stage} `) +
-      chalk.blueBright(
-          `| ${playerName} Lv.${player.lv} ` +
-          `| HP: ${player.nowHp} ` +
-          `| ATK: ${player.atk + sword1.atk} ` +
-          `| AMR: ${player.amr} `
-      ) +
-      chalk.redBright(
-          `| ${monster.name} Lv.${monster.lv} ` +
-          `| HP: ${monster.nowHp} ` +
-          `| ATK: ${monster.atk} ` +
-          `| AMR: ${monster.amr} `
-      ),
+    chalk.cyanBright(`| Stage: ${stage} `) +
+    chalk.blueBright(
+      `| ${playerName} Lv.${player.lv} ` +
+      `| HP: ${player.nowHp} ` +
+      `| ATK: ${player.atk + sword1.atk} ` +
+      `| AMR: ${player.amr} `
+    ) +
+    chalk.redBright(
+      `| ${monster.name} Lv.${monster.lv} ` +
+      `| HP: ${monster.nowHp} ` +
+      `| ATK: ${monster.atk} ` +
+      `| AMR: ${monster.amr} `
+    ),
   );
-  console.l
+  console.log(chalk.magentaBright(`====================================================================================================\n`));
 }
 
 // 유저 입력을 받아 처리하는 함수
@@ -187,12 +188,12 @@ function handleUserBattle(logs, player, monster) {
       break;
     case 'test'://승리 테스트용
       logs.push(chalk.redBright(`테스트입니다.`));
-      gold =500;
+      gold = 500;
       cheat = true;
       break;
 
     case 'die': //패배 테스트용
-      player.nowHp =0;
+      player.nowHp = 0;
       break;
     default:
       logs.push(chalk.red(`1~4의 값만 입력하세요.`));
@@ -203,12 +204,12 @@ function handleUserBattle(logs, player, monster) {
   return true;  // 유효한 입력을 받으면 true 반환
 }
 
-const battle = async (stage, player, monster,sword1) => { //전투
+const battle = async (stage, player, monster, sword1) => { //전투
   let logs = [];
 
   while (player.nowHp > 0 && monster.nowHp > 0) {
     console.clear();
-    displayStatus(stage, player, monster,sword1);
+    displayStatus(stage, player, monster, sword1);
 
     logs.forEach((log) => console.log(log));
     logs = [];  // 턴이 끝날 때마다 로그 초기화
@@ -262,8 +263,9 @@ const upgradePage = async (player, sword1, logs) => {
   while (!isValidChoice) {//1~2를 입력했는지 검증
     console.clear();
     logs.push(chalk.yellowBright(`보유골드:${gold}`));
+    logs.push(chalk.yellowBright(`보유골드:${gold}`));
     logs.forEach(log => console.log(log));
-    const upgradeChoice = readlineSync.question('1.강화하기 2.나가기: ');
+    const upgradeChoice = readlineSync.question('1.강화하기(30골드) 2.나가기: ');
     switch (upgradeChoice) {
       case '1':
         await upgrade(player, sword1, logs);
@@ -318,7 +320,7 @@ export async function startGame() {
   while (stage <= 10) {
     let player = new Player(100 + stage * 10, stage, 15 + stage * 3, 5 + stage * 2, false, true, sword1); // hp, lv, atk, amr, barrier, canIRunAway, sword
     let monster = new Monster(`Monster ${stage}단계`, 180 + stage * 30, stage, 10 + stage * 2, 5 + stage, false);// name, hp, lv, atk, amr, barrier
-    const isVictory = await battle(stage, player, monster,sword1);
+    const isVictory = await battle(stage, player, monster, sword1);
 
 
 
@@ -329,10 +331,10 @@ export async function startGame() {
       console.log(chalk.green("성공적으로 도망쳤습니다!"));
       passStage = false;
     } else {
-      archive(playerName,stage-1);//패배시 기록 저장
+      archive(playerName, stage - 1);//패배시 기록 저장
       console.log(chalk.red(`Stage ${stage}에서 패배하셨습니다.`));
       console.log(chalk.red(`게임 종료!`));
-      gold=0;
+      gold = 0;
       break;
     }
     await delay(500); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
@@ -351,10 +353,10 @@ export async function startGame() {
 
     stage++;
     if (stage === 11) {
-      gold =0;
-      archive(playerName,stage-1);
+      gold = 0;
+      archive(playerName, stage - 1);
       console.log(chalk.yellowBright(`모든 스테이지를 클리어했습니다! 곧 게임이 다시 시작됩니다.`));
-      
+
     }
   }
   start();
@@ -373,7 +375,7 @@ function archive(playerName, stage) {
       record.pop(); // 가장 낮은 스테이지를 제거
     }
   }
-  
+
   // 새로운 정보를 삽입할 위치 찾기
   const index = record.findIndex(info => info.stage < stage);//record에서 순차적으로 넣으려는 정보의 stage보다 낮은 stage가 있는지 탐색 없으면 -1반환
   if (index === -1) {
@@ -391,4 +393,9 @@ function archive(playerName, stage) {
   });
 
   console.log(`플레이어 ${playerName}의 스테이지 ${stage} 정보가 저장되었습니다.`);
+}
+
+
+function saveAchievement(playerName, maxDamage, maxUpgrade, maxGold) {
+  arguments.push({ playerName, maxDamage,maxUpgrade,maxGold });
 }
