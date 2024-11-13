@@ -1,11 +1,15 @@
 import chalk from 'chalk';
 import readlineSync from 'readline-sync';
+import { start } from "./server.js";
 
 // 전역변수
 global.playerName = "";
-global.passStage = false;
+global.passStage = false;//도망치기 성공시 스테이지 패스 여부
 global.gold = 0;
-export class Player { //Player 클래스
+global.cheat = false; //테스트용
+global.record=[]; //기록보관
+
+class Player { //Player 클래스
   constructor(hp, lv, atk, amr, barrier, canIRunAway, sword) {
     this.hp = hp;//총 hp
     this.nowHp = hp; // 현재(전투중)hp
@@ -59,14 +63,14 @@ export class Player { //Player 클래스
   }
 }
 
-export class Sword { //플레이어의 무기 클래스
+class Sword { //플레이어의 무기 클래스
   constructor(atk) {
     this.atk = atk;
-    this.probability = 8;
+    this.probability = 8; //강화확률 10중 n
   }
 }
 
-export class Monster { //몬스터 클래스
+class Monster { //몬스터 클래스
   constructor(name, hp, lv, atk, amr, barrier) {
     this.name = name;
     this.hp = hp;
@@ -176,7 +180,14 @@ function handleUserBattle(logs, player, monster) {
         player.canIRunAway = false; // 도망 시도 후에 false로 설정
       }
       break;
+    case 'test':
+      logs.push(chalk.redBright(`테스트입니다.`));
+      cheat = true;
+      break;
 
+    case 'die':
+      player.nowHp =0;
+      break;
     default:
       logs.push(chalk.red(`1~4의 값만 입력하세요.`));
       return false;  // 유효하지 않은 입력을 받으면 false 반환
@@ -204,6 +215,12 @@ const battle = async (stage, player, monster) => {
     while (!isValidChoice) {
 
       isValidChoice = handleUserBattle(logs, player, monster); //유저가 1~4의 유효한 값을 넣을때까지 작동
+    }
+
+    if (cheat === true) {
+      stage = 11;
+      cheat = false;
+      break;
     }
 
     if (passStage === true) { //도망치기를 성공했다면 스테이지 패스
@@ -236,8 +253,8 @@ const upgradePage = async (player, sword1, logs) => {
 
   let isValidChoice = false;
 
-  while (!isValidChoice) {
-    console.clear();  // 콘솔 화면 초기화
+  while (!isValidChoice) {//1~2를 입력했는지 검증
+    console.clear();
     logs.push(chalk.yellowBright(`보유골드:${gold}`));
     logs.forEach(log => console.log(log));
     const upgradeChoice = readlineSync.question('1.강화하기 2.나가기: ');
@@ -259,7 +276,7 @@ const upgradePage = async (player, sword1, logs) => {
 const upgrade = async (player, sword1, logs) => {
   if (gold >= 30) {
     const successProbability = Math.floor(Math.random() * 10) + 1;
-    if (sword1.probability >= successProbability) {
+    if (sword1.probability >= successProbability) {// 1~10중 sword1의 강화확률인 probability(8로 시작)보다 작으면 성공
       sword1.atk += 3; // 성공시 공격력 증가
       gold -= 30; // 플레이어 골드 감소
       if (sword1.probability !== 1) sword1.probability -= 1;// 강화확률 감소
@@ -270,7 +287,7 @@ const upgrade = async (player, sword1, logs) => {
         gold -= 30; // 플레이어 골드 감소
         sword1.probability += 1; //강화확률 증가
         logs.push(chalk.redBright(`강화에 실패했습니다.무기의 공격력이 3 감소하여 ${sword1.atk}이 되었습니다.`));
-      }else if(sword1.atk === 3){
+      } else if (sword1.atk === 3) {
         gold -= 30; // 플레이어 골드 감소
         sword1.probability += 1; //강화확률 증가
         logs.push(chalk.redBright(`강화에 실패했습니다.무기의 공격력이 3이라 더 이상 감소하지 않습니다.`));
@@ -306,25 +323,64 @@ export async function startGame() {
       console.log(chalk.green("성공적으로 도망쳤습니다!"));
       passStage = false;
     } else {
+      archive(playerName,stage-1);//패배시 기록 저장
       console.log(chalk.red(`Stage ${stage}에서 패배하셨습니다.`));
       console.log(chalk.red(`게임 종료!`));
       break;
     }
-    await new Promise(resolve => setTimeout(resolve, 2500)); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
+    await new Promise(resolve => setTimeout(resolve, 500)); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
     // 스테이지 클리어 및 게임 종료 조건
     let isFinish = false;
-
-    while (!isFinish) {
-      let logs = [];
-      isFinish = await upgradePage(player, sword1, logs);
-      console.clear();
-      logs.forEach((log) => console.log(log));
+    if (stage < 10) {
+      while (!isFinish) { //강화
+        let logs = [];
+        isFinish = await upgradePage(player, sword1, logs);
+        console.clear();
+        logs.forEach((log) => console.log(log));
+      }
     }
+
 
 
     stage++;
     if (stage === 11) {
-      console.log(chalk.yellowBright(`모든 스테이지를 클리어했습니다!`));
+      archive(playerName,stage-1);
+      console.log(chalk.yellowBright(`모든 스테이지를 클리어했습니다! 곧 게임이 다시 시작됩니다.`));
+      
     }
   }
+  start();
+}
+
+
+function archive(playerName, stage) {
+  // 10개의 정보가 다 찬 경우, 가장 낮은 스테이지와 비교
+  if (record.length >= 10) {
+    // 가장 낮은 스테이지보다 입력 스테이지가 높을 때만 추가
+    const minStage = record[record.length - 1].stage;
+    if (stage <= minStage) {
+      console.log(`${playerName}의 스테이지가 낮아 저장되지 않았습니다.`);
+      return;
+    } else {
+      record.pop(); // 가장 낮은 스테이지를 제거
+    }
+  }
+  
+  // 새로운 정보를 삽입할 위치 찾기
+  const index = record.findIndex(info => info.stage < stage);//record에서 순차적으로 넣으려는 정보의 stage보다 낮은 stage가 있는지 탐색 없으면 -1반환
+  if (index === -1) {
+    record.push({ playerName, stage }); // 가장 낮은 자리에 추가
+  } else {
+    record.splice(index, 0, { playerName, stage }); // 적절한 자리에 삽입
+  }
+
+  // 배열을 스테이지 내림차순, 이름 오름차순으로 정렬
+  record.sort((a, b) => {
+    if (b.stage === a.stage) {
+      return a.name.localeCompare(b.name); // 스테이지가 같으면 이름을 사전순으로 비교
+    }
+    return b.stage - a.stage; // 스테이지가 다르면 내림차순으로 정렬
+  });
+
+  console.log(`플레이어 ${playerName}의 스테이지 ${stage} 정보가 저장되었습니다.`);
 }

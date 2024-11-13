@@ -2,12 +2,36 @@ import chalk from 'chalk';
 import figlet from 'figlet';
 import readlineSync from 'readline-sync';
 import { startGame } from "./game.js";
-import {Player} from './game.js';
-import {Monster} from './game.js';
 
 
-//전역변수
-global.playerName="";
+async function displayArchive() {
+    console.clear();
+    console.log(chalk.yellow('*====*====* Game Archive *====*====*'));
+    if (record.length === 0) { //기록있는지 검사
+        console.log(chalk.red('아직 기록이 없습니다.'));
+    } else {
+        record.forEach((record, index) => {
+            console.log(chalk.greenBright(`${index + 1}. 이름: ${record.playerName}, 스테이지: ${record.stage}`)); //기록 하나씩 출력
+        });
+    };
+    console.log(chalk.yellow('*====*====*====*====*====*====*====*'));
+    console.log(chalk.green('1을 입력하면 로비로 돌아갑니다.'));
+    // 사용자 입력을 기다리고, '1'을 입력하면 로비로 돌아가기
+    const choice = readlineSync.question('Your choice: ');
+
+    if (choice === '1') {
+        displayLobby(); // 1을 누르면 로비로 이동
+        handleUserInput();//게임 시작
+    } else {
+        console.log('잘못된 입력입니다 나가시려면 1을 눌러주세요.');
+        await delay(1000);
+        displayArchive(); // 잘못된 입력이 들어오면 다시 아카이브 화면을 표시
+    }
+}
+
+
+
+
 // 로비 화면을 출력하는 함수
 function displayLobby() {
     console.clear();
@@ -57,8 +81,7 @@ function handleUserInput() {
             startGame();
             break;
         case '2':
-            console.log(chalk.yellow('구현 준비중입니다.. 게임을 시작하세요'));
-            handleUserInput();
+            displayArchive();
             break;
         case '3':
             console.log(chalk.blue('구현 준비중입니다.. 게임을 시작하세요'));
@@ -74,8 +97,12 @@ function handleUserInput() {
     }
 }
 
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // 플레이어 이름을 입력받는 함수
-function makePlayer() {
+async function makePlayer() {
     playerName = readlineSync.question('Please Insert Your name!: ');
     console.log(
         chalk.green(
@@ -88,15 +115,17 @@ function makePlayer() {
     );
 
     // 3초 지연
-    return new Promise(resolve => setTimeout(resolve, 500)); //Promise 생성 후 resolve를 반환
+    await delay(500);//Promise 생성 후 resolve를 반환
 }
 
 // 게임 시작 함수
-async function start() { //await을 위해 async함수로 선언
+export async function start() { //await을 위해 async함수로 선언
+    await delay(1000); //3초 딜레이
+    console.clear();
     await makePlayer(); // Promise가 반환될때까지 대기
     displayLobby();
     handleUserInput();
 }
 
 // 게임 실행
-start(); //npm start , npm run start 로 실행하면 한글이 안깨진다.
+start();//npm start , npm run start 로 실행하면 한글이 안깨진다.
