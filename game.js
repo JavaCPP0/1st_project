@@ -1,11 +1,12 @@
 import chalk from 'chalk';
 import readlineSync from 'readline-sync';
 import { start } from "./server.js";
+import { delay } from "./server.js";
 
 // 전역변수
 global.playerName = "";
 global.passStage = false;//도망치기 성공시 스테이지 패스 여부
-global.gold = 0;
+global.gold = 0; //스테이지마다 플레이어를 재할당 하다보니 문제가 많이 생겨서 전역변수로 뺐다
 global.cheat = false; //테스트용
 global.record=[]; //기록보관
 
@@ -66,7 +67,7 @@ class Player { //Player 클래스
 class Sword { //플레이어의 무기 클래스
   constructor(atk) {
     this.atk = atk;
-    this.probability = 8; //강화확률 10중 n
+    this.probability = 6; //강화확률 10중 n
   }
 }
 
@@ -129,20 +130,24 @@ class Monster { //몬스터 클래스
   }
 }
 
-function displayStatus(stage, player, monster) { //전투중 상태창
+function displayStatus(stage, player, monster,sword1) { // 전투 중 상태창
   console.log(chalk.magentaBright(`\n=== Current Status ===`));
   console.log(
-    chalk.cyanBright(`| Stage: ${stage} `) +
-    chalk.blueBright(
-      `| ${playerName} Lv.${player.lv} ` +
-      `| HP: ${player.nowHp}`,
-    ) +
-    chalk.redBright(
-      `| ${monster.name} Lv.${monster.lv} ` +
-      `| HP: ${monster.nowHp}`,
-    ),
+      chalk.cyanBright(`| Stage: ${stage} `) +
+      chalk.blueBright(
+          `| ${playerName} Lv.${player.lv} ` +
+          `| HP: ${player.nowHp} ` +
+          `| ATK: ${player.atk + sword1.atk} ` +
+          `| AMR: ${player.amr} `
+      ) +
+      chalk.redBright(
+          `| ${monster.name} Lv.${monster.lv} ` +
+          `| HP: ${monster.nowHp} ` +
+          `| ATK: ${monster.atk} ` +
+          `| AMR: ${monster.amr} `
+      ),
   );
-  console.log(chalk.magentaBright(`=====================\n`));
+  console.l
 }
 
 // 유저 입력을 받아 처리하는 함수
@@ -180,12 +185,13 @@ function handleUserBattle(logs, player, monster) {
         player.canIRunAway = false; // 도망 시도 후에 false로 설정
       }
       break;
-    case 'test':
+    case 'test'://승리 테스트용
       logs.push(chalk.redBright(`테스트입니다.`));
+      gold =500;
       cheat = true;
       break;
 
-    case 'die':
+    case 'die': //패배 테스트용
       player.nowHp =0;
       break;
     default:
@@ -197,12 +203,12 @@ function handleUserBattle(logs, player, monster) {
   return true;  // 유효한 입력을 받으면 true 반환
 }
 
-const battle = async (stage, player, monster) => {
+const battle = async (stage, player, monster,sword1) => { //전투
   let logs = [];
 
   while (player.nowHp > 0 && monster.nowHp > 0) {
     console.clear();
-    displayStatus(stage, player, monster);
+    displayStatus(stage, player, monster,sword1);
 
     logs.forEach((log) => console.log(log));
     logs = [];  // 턴이 끝날 때마다 로그 초기화
@@ -282,15 +288,15 @@ const upgrade = async (player, sword1, logs) => {
       if (sword1.probability !== 1) sword1.probability -= 1;// 강화확률 감소
       logs.push(chalk.blueBright(`강화에 성공했습니다! 무기의 공격력이 3 증가하여 ${sword1.atk}이 되었습니다.`));
     } else {
-      if (sword1.atk !== 3) {
+      if (sword1.atk > 3) {
         sword1.atk -= 3; // 실패시 공격력 감소
         gold -= 30; // 플레이어 골드 감소
         sword1.probability += 1; //강화확률 증가
         logs.push(chalk.redBright(`강화에 실패했습니다.무기의 공격력이 3 감소하여 ${sword1.atk}이 되었습니다.`));
-      } else if (sword1.atk === 3) {
+      } else if (sword1.atk <= 3) {
         gold -= 30; // 플레이어 골드 감소
         sword1.probability += 1; //강화확률 증가
-        logs.push(chalk.redBright(`강화에 실패했습니다.무기의 공격력이 3이라 더 이상 감소하지 않습니다.`));
+        logs.push(chalk.redBright(`강화에 실패했습니다.무기의 공격력이 3보다 작아서 더 이상 감소하지 않습니다.`));
       }
 
     }
@@ -299,7 +305,7 @@ const upgrade = async (player, sword1, logs) => {
   }
   console.clear();
   logs.forEach(log => console.log(log));
-  await new Promise(resolve => setTimeout(resolve, 2000));  // 2초 동안 로그 표시 후 이동
+  await delay(500);  // 2초 동안 로그 표시 후 이동
   logs.length = 0;
 };
 
@@ -310,9 +316,9 @@ export async function startGame() {
   let stage = 1;
 
   while (stage <= 10) {
-    let player = new Player(100 + stage * 10, stage, 15 + stage * 3, 5 + stage * 2, false, true, sword1);
-    let monster = new Monster(`Monster ${stage}단계`, 100 + stage * 20, stage, 10 + stage * 2, 5 + stage, false);
-    const isVictory = await battle(stage, player, monster);
+    let player = new Player(100 + stage * 10, stage, 15 + stage * 3, 5 + stage * 2, false, true, sword1); // hp, lv, atk, amr, barrier, canIRunAway, sword
+    let monster = new Monster(`Monster ${stage}단계`, 180 + stage * 30, stage, 10 + stage * 2, 5 + stage, false);// name, hp, lv, atk, amr, barrier
+    const isVictory = await battle(stage, player, monster,sword1);
 
 
 
@@ -326,9 +332,10 @@ export async function startGame() {
       archive(playerName,stage-1);//패배시 기록 저장
       console.log(chalk.red(`Stage ${stage}에서 패배하셨습니다.`));
       console.log(chalk.red(`게임 종료!`));
+      gold=0;
       break;
     }
-    await new Promise(resolve => setTimeout(resolve, 500)); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
+    await delay(500); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
     // 스테이지 클리어 및 게임 종료 조건
     let isFinish = false;
     if (stage < 10) {
@@ -344,6 +351,7 @@ export async function startGame() {
 
     stage++;
     if (stage === 11) {
+      gold =0;
       archive(playerName,stage-1);
       console.log(chalk.yellowBright(`모든 스테이지를 클리어했습니다! 곧 게임이 다시 시작됩니다.`));
       

@@ -60,7 +60,7 @@ function displayLobby() {
 
     // 옵션들
     console.log(chalk.blue('1.') + chalk.white(' 새로운 게임 시작'));
-    console.log(chalk.blue('2.') + chalk.white(' 업적 확인하기'));
+    console.log(chalk.blue('2.') + chalk.white(' 기록 보기'));
     console.log(chalk.blue('3.') + chalk.white(' 옵션'));
     console.log(chalk.blue('4.') + chalk.white(' 종료'));
 
@@ -97,7 +97,7 @@ function handleUserInput() {
     }
 }
 
-function delay(ms) {
+export function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
