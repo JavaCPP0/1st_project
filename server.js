@@ -86,7 +86,7 @@ function displayLobby() {
     // 옵션들
     console.log(chalk.blue('1.') + chalk.white(' 새로운 게임 시작'));
     console.log(chalk.blue('2.') + chalk.white(' 기록 보기'));
-    console.log(chalk.blue('3.') + chalk.white(' 옵션'));
+    console.log(chalk.blue('3.') + chalk.white(' 업적 보기'));
     console.log(chalk.blue('4.') + chalk.white(' 종료'));
 
     // 하단 경계선
@@ -109,7 +109,6 @@ function handleUserInput() {
             displayArchive();
             break;
         case '3':
-            console.log(chalk.blue('업적시스템'));
             displayAchievement();
             break;
         case '4':
@@ -140,12 +139,12 @@ async function makePlayer() {
     );
 
     // 3초 지연
-    await delay(500);//Promise 생성 후 resolve를 반환
+    await delay(1500);//Promise 생성 후 resolve를 반환
 }
 
 // 게임 시작 함수
 export async function start() { //await을 위해 async함수로 선언
-    await delay(1000); //3초 딜레이
+    await delay(2500); //3초 딜레이
     console.clear();
     await makePlayer(); // Promise가 반환될때까지 대기
     displayLobby();

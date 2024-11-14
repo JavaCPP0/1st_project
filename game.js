@@ -339,8 +339,12 @@ export async function startGame() {
     } else {
       archive(playerName, stage - 1);//패배시 기록 저장
       saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements);
+      maxDamage =0;
+      maxUpgrade=0;
+      maxGold =0;
       console.log(chalk.red(`Stage ${stage}에서 패배하셨습니다.`));
       console.log(chalk.red(`게임 종료!`));
+      console.log(chalk.yellowBright(`곧 게임이 다시 시작됩니다.`));
       gold = 0;
       break;
     }
@@ -363,6 +367,9 @@ export async function startGame() {
       gold = 0;
       archive(playerName, stage - 1);
       saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements);
+      maxDamage =0;
+      maxUpgrade=0;
+      maxGold =0;
       console.log(chalk.yellowBright(`모든 스테이지를 클리어했습니다! 곧 게임이 다시 시작됩니다.`));
 
     }
@@ -395,7 +402,7 @@ function archive(playerName, stage) {
   // 배열을 스테이지 내림차순, 이름 오름차순으로 정렬
   record.sort((a, b) => {
     if (b.stage === a.stage) {
-      return a.name.localeCompare(b.name); // 스테이지가 같으면 이름을 사전순으로 비교
+      return a.playerName.localeCompare(b.playerName); // 스테이지가 같으면 이름을 사전순으로 비교
     }
     return b.stage - a.stage; // 스테이지가 다르면 내림차순으로 정렬
   });
@@ -409,6 +416,7 @@ function saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements) 
     PlayerName: playerName,
     Achievements: []
   };
+  
 
   // 업적을 배열에 추가
   if (maxDamage >= 20) playerAchievements.Achievements.push("[어디서 좀 치던 사람]");
