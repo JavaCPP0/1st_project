@@ -10,7 +10,10 @@ global.gold = 0; //스테이지마다 플레이어를 재할당 하다보니 문
 global.cheat = false; //테스트용
 global.record = []; //기록보관
 global.achievements = [];//업적보관
-
+global.displayAchievements = []; //업적 바꾸기
+global.maxDamage =0; //업적용 최대데미지 저장
+global.maxGold =0; //업적용 최대골드 저장
+global.maxUpgrade =5; //업적용 최고 공격력
 class Player { //Player 클래스
   constructor(hp, lv, atk, amr, barrier, canIRunAway, sword) {
     this.hp = hp;//총 hp
@@ -21,13 +24,13 @@ class Player { //Player 클래스
     this.barrier = barrier; // 방어성공여부
     this.canIRunAway = canIRunAway//도망기회
     this.sword = sword; //무기
-
   }
 
   attack(monster, logs) {
     // 플레이어의 공격
     if (monster.barrier === false) { //몬스터의 방어가 없다면
       const damage = Math.max(0, this.sword.atk + this.atk - monster.amr);  // 공격력 계산
+      if(damage>maxDamage) maxDamage = damage;//최대데미지 업적
       monster.nowHp -= damage;  // 몬스터의 체력 감소
       logs.push(`피해를 ${damage}만큼 입혀 ${monster.name}의 체력이 ${monster.nowHp} 남았습니다.`);
     } else if (monster.barrier === true) { // 몬스터의 방어가 있다면
@@ -45,6 +48,7 @@ class Player { //Player 클래스
     const randomPlayerSkill = Math.floor(Math.random() * 3) + 1; // 2/3 확률설정
     if (randomPlayerSkill % 2 === 1 && monster.barrier === false) { //맞췄고 방어막이 없다면
       const damage = (this.sword.atk + this.atk) * 2;  // 공격력 계산
+      if(damage>maxDamage) maxDamage = damage;//최대데미지 업적
       monster.nowHp -= damage;  // 몬스터의 체력 감소
       logs.push(`스킬 적중! 피해를 ${damage}만큼 입혀 ${monster.name}의 체력이 ${monster.nowHp} 남았습니다.`);
     } else if (randomPlayerSkill % 2 === 1 && monster.barrier === true) { //맞췄지만 방어막이 있다면
@@ -196,7 +200,7 @@ function handleUserBattle(logs, player, monster) {
       player.nowHp = 0;
       break;
     default:
-      logs.push(chalk.red(`1~4의 값만 입력하세요.`));
+      console.log(chalk.red(`1~4의 값만 입력하세요.`));
       return false;  // 유효하지 않은 입력을 받으면 false 반환
   }
 
@@ -239,6 +243,7 @@ const battle = async (stage, player, monster, sword1) => { //전투
     if (monster.nowHp <= 0) {
       logs.push(chalk.green(`플레이어의 승리입니다!`));
       gold += 50;  // 승리 시 골드 추가
+      if(gold>maxGold) maxGold = gold;//최대골드 업적
       break;  // 전투 종료
     }
 
@@ -262,7 +267,7 @@ const upgradePage = async (player, sword1, logs) => {
 
   while (!isValidChoice) {//1~2를 입력했는지 검증
     console.clear();
-    logs.push(chalk.yellowBright(`보유골드:${gold}`));
+    logs.push(chalk.yellowBright(`=|=|=|=|=|=제련소=|=|=|=|=|=`));
     logs.push(chalk.yellowBright(`보유골드:${gold}`));
     logs.forEach(log => console.log(log));
     const upgradeChoice = readlineSync.question('1.강화하기(30골드) 2.나가기: ');
@@ -286,6 +291,7 @@ const upgrade = async (player, sword1, logs) => {
     const successProbability = Math.floor(Math.random() * 10) + 1;
     if (sword1.probability >= successProbability) {// 1~10중 sword1의 강화확률인 probability(8로 시작)보다 작으면 성공
       sword1.atk += 3; // 성공시 공격력 증가
+      if(sword1.atk>maxUpgrade) maxUpgrade = sword1.atk;//최대강화 업적
       gold -= 30; // 플레이어 골드 감소
       if (sword1.probability !== 1) sword1.probability -= 1;// 강화확률 감소
       logs.push(chalk.blueBright(`강화에 성공했습니다! 무기의 공격력이 3 증가하여 ${sword1.atk}이 되었습니다.`));
@@ -332,6 +338,7 @@ export async function startGame() {
       passStage = false;
     } else {
       archive(playerName, stage - 1);//패배시 기록 저장
+      saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements);
       console.log(chalk.red(`Stage ${stage}에서 패배하셨습니다.`));
       console.log(chalk.red(`게임 종료!`));
       gold = 0;
@@ -355,6 +362,7 @@ export async function startGame() {
     if (stage === 11) {
       gold = 0;
       archive(playerName, stage - 1);
+      saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements);
       console.log(chalk.yellowBright(`모든 스테이지를 클리어했습니다! 곧 게임이 다시 시작됩니다.`));
 
     }
@@ -396,6 +404,26 @@ function archive(playerName, stage) {
 }
 
 
-function saveAchievement(playerName, maxDamage, maxUpgrade, maxGold) {
-  arguments.push({ playerName, maxDamage,maxUpgrade,maxGold });
+function saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements) {
+  let playerAchievements = {
+    PlayerName: playerName,
+    Achievements: []
+  };
+
+  // 업적을 배열에 추가
+  if (maxDamage >= 20) playerAchievements.Achievements.push("[어디서 좀 치던 사람]");
+  if (maxDamage >= 40) playerAchievements.Achievements.push("[힘세고 강한 사람]");
+  if (maxDamage >= 60) playerAchievements.Achievements.push("[짱쎈사람]");
+  if (maxDamage >= 80) playerAchievements.Achievements.push("[진 심 펀 치]");
+  if (maxUpgrade >= 8) playerAchievements.Achievements.push("[강화어린이]");
+  if (maxUpgrade >= 14) playerAchievements.Achievements.push("[강화고수]");
+  if (maxUpgrade >= 17) playerAchievements.Achievements.push("[좋은 운을 이런데 쓴 사람]");
+  if (maxUpgrade >= 20) playerAchievements.Achievements.push("[이게되네]");
+  if (maxGold >= 100) playerAchievements.Achievements.push("[강화를 까먹은 사람]");
+  if (maxGold >= 200) playerAchievements.Achievements.push("[강화를 안하는 사람]");
+  if (maxGold >= 300) playerAchievements.Achievements.push("[저축의 신]");
+  if (maxGold >= 500) playerAchievements.Achievements.push("[절약왕]");
+
+  // playerAchievements 객체를 achievements 배열에 추가
+  achievements.push(playerAchievements);
 }
