@@ -219,7 +219,7 @@ const battle = async (stage, player, monster, sword1) => { //전투
     logs = [];  // 턴이 끝날 때마다 로그 초기화
 
     console.log(
-      chalk.green(`\n1. 일반공격 2. 방어 3. 스킬 4. 도망`),
+      chalk.green(`\n1. 일반공격 2. 방어(50%) 3. 스킬(66%) 4. 도망(66%)`),
     );
 
     let isValidChoice = false;
