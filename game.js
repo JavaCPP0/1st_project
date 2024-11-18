@@ -313,7 +313,7 @@ const upgrade = async (player, sword1, logs) => {
   }
   console.clear();
   logs.forEach(log => console.log(log));
-  await delay(500);  // 2초 동안 로그 표시 후 이동
+  await delay(1000);  // 1초 동안 로그 표시 후 이동
   logs.length = 0;
 };
 
@@ -348,7 +348,7 @@ export async function startGame() {
       gold = 0;
       break;
     }
-    await delay(500); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
+    await delay(2500); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
     // 스테이지 클리어 및 게임 종료 조건
     let isFinish = false;
     if (stage < 10) {
