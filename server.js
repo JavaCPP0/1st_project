@@ -138,8 +138,8 @@ async function makePlayer() {
         )
     );
 
-    // 3초 지연
-    await delay(1500);//Promise 생성 후 resolve를 반환
+    // 2초 지연
+    await delay(2000);//Promise 생성 후 resolve를 반환
 }
 
 // 게임 시작 함수
