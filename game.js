@@ -8,8 +8,12 @@ global.playerName = "";
 global.passStage = false;//도망치기 성공시 스테이지 패스 여부
 global.gold = 0; //스테이지마다 플레이어를 재할당 하다보니 문제가 많이 생겨서 전역변수로 뺐다
 global.cheat = false; //테스트용
-global.record=[]; //기록보관
-
+global.record = []; //기록보관
+global.achievements = [];//업적보관
+global.displayAchievements = []; //업적 바꾸기
+global.maxDamage =0; //업적용 최대데미지 저장
+global.maxGold =0; //업적용 최대골드 저장
+global.maxUpgrade =5; //업적용 최고 공격력
 class Player { //Player 클래스
   constructor(hp, lv, atk, amr, barrier, canIRunAway, sword) {
     this.hp = hp;//총 hp
@@ -20,13 +24,13 @@ class Player { //Player 클래스
     this.barrier = barrier; // 방어성공여부
     this.canIRunAway = canIRunAway//도망기회
     this.sword = sword; //무기
-
   }
 
   attack(monster, logs) {
     // 플레이어의 공격
     if (monster.barrier === false) { //몬스터의 방어가 없다면
       const damage = Math.max(0, this.sword.atk + this.atk - monster.amr);  // 공격력 계산
+      if(damage>maxDamage) maxDamage = damage;//최대데미지 업적
       monster.nowHp -= damage;  // 몬스터의 체력 감소
       logs.push(`피해를 ${damage}만큼 입혀 ${monster.name}의 체력이 ${monster.nowHp} 남았습니다.`);
     } else if (monster.barrier === true) { // 몬스터의 방어가 있다면
@@ -44,6 +48,7 @@ class Player { //Player 클래스
     const randomPlayerSkill = Math.floor(Math.random() * 3) + 1; // 2/3 확률설정
     if (randomPlayerSkill % 2 === 1 && monster.barrier === false) { //맞췄고 방어막이 없다면
       const damage = (this.sword.atk + this.atk) * 2;  // 공격력 계산
+      if(damage>maxDamage) maxDamage = damage;//최대데미지 업적
       monster.nowHp -= damage;  // 몬스터의 체력 감소
       logs.push(`스킬 적중! 피해를 ${damage}만큼 입혀 ${monster.name}의 체력이 ${monster.nowHp} 남았습니다.`);
     } else if (randomPlayerSkill % 2 === 1 && monster.barrier === true) { //맞췄지만 방어막이 있다면
@@ -130,24 +135,24 @@ class Monster { //몬스터 클래스
   }
 }
 
-function displayStatus(stage, player, monster,sword1) { // 전투 중 상태창
-  console.log(chalk.magentaBright(`\n=== Current Status ===`));
+function displayStatus(stage, player, monster, sword1) { // 전투 중 상태창
+  console.log(chalk.magentaBright(`\n========================================== Current Status ==========================================`));
   console.log(
-      chalk.cyanBright(`| Stage: ${stage} `) +
-      chalk.blueBright(
-          `| ${playerName} Lv.${player.lv} ` +
-          `| HP: ${player.nowHp} ` +
-          `| ATK: ${player.atk + sword1.atk} ` +
-          `| AMR: ${player.amr} `
-      ) +
-      chalk.redBright(
-          `| ${monster.name} Lv.${monster.lv} ` +
-          `| HP: ${monster.nowHp} ` +
-          `| ATK: ${monster.atk} ` +
-          `| AMR: ${monster.amr} `
-      ),
+    chalk.cyanBright(`| Stage: ${stage} `) +
+    chalk.blueBright(
+      `| ${playerName} Lv.${player.lv} ` +
+      `| HP: ${player.nowHp} ` +
+      `| ATK: ${player.atk + sword1.atk} ` +
+      `| AMR: ${player.amr} `
+    ) +
+    chalk.redBright(
+      `| ${monster.name} Lv.${monster.lv} ` +
+      `| HP: ${monster.nowHp} ` +
+      `| ATK: ${monster.atk} ` +
+      `| AMR: ${monster.amr} `
+    ),
   );
-  console.l
+  console.log(chalk.magentaBright(`====================================================================================================\n`));
 }
 
 // 유저 입력을 받아 처리하는 함수
@@ -187,15 +192,15 @@ function handleUserBattle(logs, player, monster) {
       break;
     case 'test'://승리 테스트용
       logs.push(chalk.redBright(`테스트입니다.`));
-      gold =500;
+      gold = 500;
       cheat = true;
       break;
 
     case 'die': //패배 테스트용
-      player.nowHp =0;
+      player.nowHp = 0;
       break;
     default:
-      logs.push(chalk.red(`1~4의 값만 입력하세요.`));
+      console.log(chalk.red(`1~4의 값만 입력하세요.`));
       return false;  // 유효하지 않은 입력을 받으면 false 반환
   }
 
@@ -203,18 +208,18 @@ function handleUserBattle(logs, player, monster) {
   return true;  // 유효한 입력을 받으면 true 반환
 }
 
-const battle = async (stage, player, monster,sword1) => { //전투
+const battle = async (stage, player, monster, sword1) => { //전투
   let logs = [];
 
   while (player.nowHp > 0 && monster.nowHp > 0) {
     console.clear();
-    displayStatus(stage, player, monster,sword1);
+    displayStatus(stage, player, monster, sword1);
 
     logs.forEach((log) => console.log(log));
     logs = [];  // 턴이 끝날 때마다 로그 초기화
 
     console.log(
-      chalk.green(`\n1. 일반공격 2. 방어 3. 스킬 4. 도망`),
+      chalk.green(`\n1. 일반공격 2. 방어(50%) 3. 스킬(66%) 4. 도망(66%)`),
     );
 
     let isValidChoice = false;
@@ -238,6 +243,7 @@ const battle = async (stage, player, monster,sword1) => { //전투
     if (monster.nowHp <= 0) {
       logs.push(chalk.green(`플레이어의 승리입니다!`));
       gold += 50;  // 승리 시 골드 추가
+      if(gold>maxGold) maxGold = gold;//최대골드 업적
       break;  // 전투 종료
     }
 
@@ -261,9 +267,10 @@ const upgradePage = async (player, sword1, logs) => {
 
   while (!isValidChoice) {//1~2를 입력했는지 검증
     console.clear();
+    logs.push(chalk.yellowBright(`=|=|=|=|=|=제련소=|=|=|=|=|=`));
     logs.push(chalk.yellowBright(`보유골드:${gold}`));
     logs.forEach(log => console.log(log));
-    const upgradeChoice = readlineSync.question('1.강화하기 2.나가기: ');
+    const upgradeChoice = readlineSync.question('1.강화하기(30골드) 2.나가기: ');
     switch (upgradeChoice) {
       case '1':
         await upgrade(player, sword1, logs);
@@ -284,6 +291,7 @@ const upgrade = async (player, sword1, logs) => {
     const successProbability = Math.floor(Math.random() * 10) + 1;
     if (sword1.probability >= successProbability) {// 1~10중 sword1의 강화확률인 probability(8로 시작)보다 작으면 성공
       sword1.atk += 3; // 성공시 공격력 증가
+      if(sword1.atk>maxUpgrade) maxUpgrade = sword1.atk;//최대강화 업적
       gold -= 30; // 플레이어 골드 감소
       if (sword1.probability !== 1) sword1.probability -= 1;// 강화확률 감소
       logs.push(chalk.blueBright(`강화에 성공했습니다! 무기의 공격력이 3 증가하여 ${sword1.atk}이 되었습니다.`));
@@ -318,7 +326,7 @@ export async function startGame() {
   while (stage <= 10) {
     let player = new Player(100 + stage * 10, stage, 15 + stage * 3, 5 + stage * 2, false, true, sword1); // hp, lv, atk, amr, barrier, canIRunAway, sword
     let monster = new Monster(`Monster ${stage}단계`, 180 + stage * 30, stage, 10 + stage * 2, 5 + stage, false);// name, hp, lv, atk, amr, barrier
-    const isVictory = await battle(stage, player, monster,sword1);
+    const isVictory = await battle(stage, player, monster, sword1);
 
 
 
@@ -329,10 +337,15 @@ export async function startGame() {
       console.log(chalk.green("성공적으로 도망쳤습니다!"));
       passStage = false;
     } else {
-      archive(playerName,stage-1);//패배시 기록 저장
+      archive(playerName, stage - 1);//패배시 기록 저장
+      saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements);
+      maxDamage =0;
+      maxUpgrade=0;
+      maxGold =0;
       console.log(chalk.red(`Stage ${stage}에서 패배하셨습니다.`));
       console.log(chalk.red(`게임 종료!`));
-      gold=0;
+      console.log(chalk.yellowBright(`곧 게임이 다시 시작됩니다.`));
+      gold = 0;
       break;
     }
     await delay(500); //다음 스테이지 전까지 텍스트를 읽을 수 있게 타임아웃2.5초
@@ -351,10 +364,14 @@ export async function startGame() {
 
     stage++;
     if (stage === 11) {
-      gold =0;
-      archive(playerName,stage-1);
+      gold = 0;
+      archive(playerName, stage - 1);
+      saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements);
+      maxDamage =0;
+      maxUpgrade=0;
+      maxGold =0;
       console.log(chalk.yellowBright(`모든 스테이지를 클리어했습니다! 곧 게임이 다시 시작됩니다.`));
-      
+
     }
   }
   start();
@@ -373,7 +390,7 @@ function archive(playerName, stage) {
       record.pop(); // 가장 낮은 스테이지를 제거
     }
   }
-  
+
   // 새로운 정보를 삽입할 위치 찾기
   const index = record.findIndex(info => info.stage < stage);//record에서 순차적으로 넣으려는 정보의 stage보다 낮은 stage가 있는지 탐색 없으면 -1반환
   if (index === -1) {
@@ -385,10 +402,36 @@ function archive(playerName, stage) {
   // 배열을 스테이지 내림차순, 이름 오름차순으로 정렬
   record.sort((a, b) => {
     if (b.stage === a.stage) {
-      return a.name.localeCompare(b.name); // 스테이지가 같으면 이름을 사전순으로 비교
+      return a.playerName.localeCompare(b.playerName); // 스테이지가 같으면 이름을 사전순으로 비교
     }
     return b.stage - a.stage; // 스테이지가 다르면 내림차순으로 정렬
   });
 
   console.log(`플레이어 ${playerName}의 스테이지 ${stage} 정보가 저장되었습니다.`);
+}
+
+
+function saveAchievement(playerName, maxDamage,maxUpgrade,maxGold,achievements) {
+  let playerAchievements = {
+    PlayerName: playerName,
+    Achievements: []
+  };
+  
+
+  // 업적을 배열에 추가
+  if (maxDamage >= 20) playerAchievements.Achievements.push("[어디서 좀 치던 사람]");
+  if (maxDamage >= 40) playerAchievements.Achievements.push("[힘세고 강한 사람]");
+  if (maxDamage >= 60) playerAchievements.Achievements.push("[짱쎈사람]");
+  if (maxDamage >= 80) playerAchievements.Achievements.push("[진 심 펀 치]");
+  if (maxUpgrade >= 8) playerAchievements.Achievements.push("[강화어린이]");
+  if (maxUpgrade >= 14) playerAchievements.Achievements.push("[강화고수]");
+  if (maxUpgrade >= 17) playerAchievements.Achievements.push("[좋은 운을 이런데 쓴 사람]");
+  if (maxUpgrade >= 20) playerAchievements.Achievements.push("[이게되네]");
+  if (maxGold >= 100) playerAchievements.Achievements.push("[강화를 까먹은 사람]");
+  if (maxGold >= 200) playerAchievements.Achievements.push("[강화를 안하는 사람]");
+  if (maxGold >= 300) playerAchievements.Achievements.push("[저축의 신]");
+  if (maxGold >= 500) playerAchievements.Achievements.push("[절약왕]");
+
+  // playerAchievements 객체를 achievements 배열에 추가
+  achievements.push(playerAchievements);
 }

@@ -29,6 +29,31 @@ async function displayArchive() {
     }
 }
 
+async function displayAchievement() {
+    console.clear();
+    console.log(chalk.yellow('*====*====*====*====*====*====*====*====*====*====*====* Players Achievements *====*====*====*====*====*====*====*====*====*====*===*'));
+    if (achievements.length === 0) { //기록있는지 검사
+        console.log(chalk.red('아직 기록이 없습니다.'));
+    } else {
+        achievements.forEach((achievements, index) => {
+            console.log(chalk.greenBright(`${index + 1}. 이름: ${achievements.PlayerName}, 달성업적: ${achievements.Achievements}`)); //기록 하나씩 출력
+        });
+    };
+    console.log(chalk.yellow('*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*'));
+    console.log(chalk.green('1을 입력하면 로비로 돌아갑니다.'));
+    // 사용자 입력을 기다리고, '1'을 입력하면 로비로 돌아가기
+    const choice = readlineSync.question('Your choice: ');
+
+    if (choice === '1') {
+        displayLobby(); // 1을 누르면 로비로 이동
+        handleUserInput();//게임 시작
+    } else {
+        console.log('잘못된 입력입니다 나가시려면 1을 눌러주세요.');
+        await delay(1000);
+        displayAchievement(); // 잘못된 입력이 들어오면 다시 업적 화면을 표시
+    }
+}
+
 
 
 
@@ -61,7 +86,7 @@ function displayLobby() {
     // 옵션들
     console.log(chalk.blue('1.') + chalk.white(' 새로운 게임 시작'));
     console.log(chalk.blue('2.') + chalk.white(' 기록 보기'));
-    console.log(chalk.blue('3.') + chalk.white(' 옵션'));
+    console.log(chalk.blue('3.') + chalk.white(' 업적 보기'));
     console.log(chalk.blue('4.') + chalk.white(' 종료'));
 
     // 하단 경계선
@@ -84,8 +109,7 @@ function handleUserInput() {
             displayArchive();
             break;
         case '3':
-            console.log(chalk.blue('구현 준비중입니다.. 게임을 시작하세요'));
-            handleUserInput();
+            displayAchievement();
             break;
         case '4':
             console.log(chalk.red('게임을 종료합니다.'));
@@ -115,12 +139,12 @@ async function makePlayer() {
     );
 
     // 3초 지연
-    await delay(500);//Promise 생성 후 resolve를 반환
+    await delay(1500);//Promise 생성 후 resolve를 반환
 }
 
 // 게임 시작 함수
 export async function start() { //await을 위해 async함수로 선언
-    await delay(1000); //3초 딜레이
+    await delay(2500); //3초 딜레이
     console.clear();
     await makePlayer(); // Promise가 반환될때까지 대기
     displayLobby();
